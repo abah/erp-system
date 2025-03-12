@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Dashboard - Inventory Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <style>
+        body { background-color: #f5f7fa; }
+        .navbar {
+            background-color: #343a40;
+            padding: 1rem;
+        }
+        .navbar-brand {
+            color: white !important;
+            font-weight: bold;
+        }
+        .nav-link {
+            color: rgba(255,255,255,.8) !important;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: white !important;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eee;
+            padding: 1rem;
+        }
+        .table th {
+            border-top: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        .btn-primary {
+            background-color: #4a6cf7;
+            border-color: #4a6cf7;
+        }
+        .btn-primary:hover {
+            background-color: #3a5bd9;
+            border-color: #3a5bd9;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-low {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-medium {
+            background-color: #ffeeba;
+            color: #856404;
+        }
+        .status-high {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .modal-header {
+            background-color: #4a6cf7;
+            color: white;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 12px;
+            color: #6c757d;
+        }
+        .search-input {
+            padding-left: 40px;
+            border-radius: 20px;
+        }
+        .filter-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
+        }
+        .summary-card {
+            background: linear-gradient(45deg, #4a6cf7, #3a5bd9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .summary-card h3 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .summary-card p {
+            margin: 5px 0 0;
+            opacity: 0.8;
+        }
+        .action-buttons .btn {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+        .inventory-alert {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .inventory-alert i {
+            margin-right: 10px;
+        }
+        
+        /* Sidebar styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background-color: #343a40;
+            padding-top: 1rem;
+            z-index: 1000;
+        }
+        
+        .sidebar-brand {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,.1);
+            margin-bottom: 1rem;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar-menu a {
+            color: rgba(255,255,255,.8);
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            color: white;
+            background-color: rgba(255,255,255,.1);
+        }
+        
+        .sidebar-menu i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .sidebar-submenu {
+            list-style: none;
+            padding-left: 3rem;
+            display: none;
+        }
+        
+        .sidebar-submenu.show {
+            display: block;
+        }
+        
+        /* Adjust main content */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        
+        /* Adjust navbar */
+        .navbar {
+            margin-left: 250px;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content,
+            .navbar {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-building"></i> ERP System
+        </div>
+        <ul class="sidebar-menu">
+            <li>
+                <a href="index.html" class="d-flex align-items-center">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="d-flex align-items-center justify-content-between" data-bs-toggle="collapse" data-bs-target="#salesSubmenu">
+                    <div>
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Sales</span>
+                    </div>
+                    <i class="fas fa-chevron-down"></i>
+                </a>
+                <ul class="sidebar-submenu collapse" id="salesSubmenu">
+                    <li><a href="sales.html">Sales Orders</a></li>
+                    <li><a href="#">Customers</a></li>
+                    <li><a href="#">Quotations</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#" class="d-flex align-items-center justify-content-between active" data-bs-toggle="collapse" data-bs-target="#inventorySubmenu">
+                    <div>
+                        <i class="fas fa-box"></i>
+                        <span>Inventory</span>
+                    </div>
+                    <i class="fas fa-chevron-down"></i>
+                </a>
+                <ul class="sidebar-submenu collapse show" id="inventorySubmenu">
+                    <li><a href="inventory.html" class="active">Stock Items</a></li>
+                    <li><a href="#">Stock Transfers</a></li>
+                    <li><a href="#">Stock Adjustments</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#" class="d-flex align-items-center justify-content-between" data-bs-toggle="collapse" data-bs-target="#purchaseSubmenu">
+                    <div>
+                        <i class="fas fa-truck"></i>
+                        <span>Purchasing</span>
+                    </div>
+                    <i class="fas fa-chevron-down"></i>
+                </a>
+                <ul class="sidebar-submenu collapse" id="purchaseSubmenu">
+                    <li><a href="#">Purchase Orders</a></li>
+                    <li><a href="#">Suppliers</a></li>
+                    <li><a href="#">Purchase Returns</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#" class="d-flex align-items-center justify-content-between" data-bs-toggle="collapse" data-bs-target="#financeSubmenu">
+                    <div>
+                        <i class="fas fa-money-bill"></i>
+                        <span>Finance</span>
+                    </div>
+                    <i class="fas fa-chevron-down"></i>
+                </a>
+                <ul class="sidebar-submenu collapse" id="financeSubmenu">
+                    <li><a href="#">Accounts</a></li>
+                    <li><a href="#">Invoices</a></li>
+                    <li><a href="#">Payments</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="analytics.html" class="d-flex align-items-center">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="d-flex align-items-center">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Wrap main content -->
+    <div class="main-content">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="index.html">ERP Dashboard</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="index.html">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="sales.html">Sales</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="inventory.html">Inventory</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="analytics.html">Analytics</a>
+                        </li>
+                    </ul>
+                    <div class="d-flex">
+                        <div class="dropdown">
+                            <button class="btn btn-link nav-link dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle"></i> <span id="username">Admin</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container-fluid py-4">
+            <!-- Summary Cards -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="summary-card">
+                        <h3>2,458</h3>
+                        <p>Total Items</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card">
+                        <h3>Rp 4,250,000,000</h3>
+                        <p>Inventory Value</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card">
+                        <h3>85</h3>
+                        <p>Low Stock Items</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card">
+                        <h3>5.8</h3>
+                        <p>Inventory Turnover</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <div class="inventory-alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>15 items</strong> are below reorder point. <a href="#" class="alert-link">View details</a>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control search-input" placeholder="Search items...">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <select class="form-select">
+                                    <option value="">Category</option>
+                                    <option value="electronics">Electronics</option>
+                                    <option value="furniture">Furniture</option>
+                                    <option value="supplies">Office Supplies</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select">
+                                    <option value="">Stock Level</option>
+                                    <option value="low">Low Stock</option>
+                                    <option value="medium">Medium Stock</option>
+                                    <option value="high">High Stock</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select">
+                                    <option value="">Sort By</option>
+                                    <option value="name">Name</option>
+                                    <option value="stock">Stock Level</option>
+                                    <option value="value">Value</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newItemModal">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Inventory Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Item Code</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Stock Level</th>
+                                    <th>Unit Price</th>
+                                    <th>Total Value</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>INV-001</td>
+                                    <td>Laptop Dell XPS 13</td>
+                                    <td>Electronics</td>
+                                    <td>25</td>
+                                    <td>Rp 15,000,000</td>
+                                    <td>Rp 375,000,000</td>
+                                    <td><span class="status-badge status-medium">Medium Stock</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewItemModal">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editItemModal">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>INV-002</td>
+                                    <td>Office Chair Ergonomic</td>
+                                    <td>Furniture</td>
+                                    <td>8</td>
+                                    <td>Rp 2,500,000</td>
+                                    <td>Rp 20,000,000</td>
+                                    <td><span class="status-badge status-low">Low Stock</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewItemModal">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editItemModal">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Charts -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Stock Level by Category</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="categoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Inventory Value Trend</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="valueTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Item Modal -->
+    <div class="modal fade" id="newItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newItemForm">
+                        <div class="mb-3">
+                            <label class="form-label">Item Name</label>
+                            <input type="text" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" required>
+                                <option value="">Select Category</option>
+                                <option value="electronics">Electronics</option>
+                                <option value="furniture">Furniture</option>
+                                <option value="supplies">Office Supplies</option>
+                            </select>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Initial Stock</label>
+                                <input type="number" class="form-control" min="0" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Unit Price</label>
+                                <input type="number" class="form-control" min="0" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Reorder Point</label>
+                                <input type="number" class="form-control" min="0" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Reorder Quantity</label>
+                                <input type="number" class="form-control" min="0" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="newItemForm" class="btn btn-primary">Add Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Item Modal -->
+    <div class="modal fade" id="viewItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">View Item Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Item details will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div class="modal fade" id="editItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Edit form will be populated dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="db.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check login status
+            const isLoggedIn = localStorage.getItem('erp_dashboard_logged_in');
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Set username
+            const username = localStorage.getItem('erp_dashboard_username');
+            if (username) {
+                document.getElementById('username').textContent = username;
+            }
+
+            // Setup logout
+            document.getElementById('logout-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                DB.logout();
+                window.location.href = 'login.html';
+            });
+
+            // Initialize charts
+            initCharts();
+
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        function initCharts() {
+            // Category Chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(categoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Electronics', 'Furniture', 'Office Supplies', 'Services', 'Other'],
+                    datasets: [{
+                        label: 'Stock Level',
+                        data: [350, 275, 425, 150, 200],
+                        backgroundColor: ['#4a6cf7', '#28a745', '#fd7e14', '#dc3545', '#6f42c1']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Value Trend Chart
+            const valueTrendCtx = document.getElementById('valueTrendChart').getContext('2d');
+            new Chart(valueTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Inventory Value (in millions Rp)',
+                        data: [3800, 4100, 4250, 4000, 4300, 4250],
+                        borderColor: '#4a6cf7',
+                        backgroundColor: 'rgba(74, 108, 247, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            // Search functionality
+            document.querySelector('.search-input').addEventListener('input', function(e) {
+                // Implement search logic
+                console.log('Searching for:', e.target.value);
+            });
+
+            // Filter changes
+            document.querySelectorAll('.form-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    // Implement filter logic
+                    console.log('Filter changed:', this.value);
+                });
+            });
+
+            // New item form submission
+            document.getElementById('newItemForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Implement item creation logic
+                console.log('Creating new item');
+                // Close modal
+                bootstrap.Modal.getInstance(document.getElementById('newItemModal')).hide();
+            });
+
+            // Toggle submenu on click
+            document.querySelectorAll('.sidebar-menu a[data-bs-toggle="collapse"]').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const submenu = this.nextElementSibling;
+                    if (submenu) {
+                        submenu.classList.toggle('show');
+                    }
+                });
+            });
+
+            // Toggle sidebar on mobile
+            document.querySelector('.navbar-toggler').addEventListener('click', function() {
+                document.querySelector('.sidebar').classList.toggle('show');
+            });
+        }
+    </script>
+</body>
+</html> 
